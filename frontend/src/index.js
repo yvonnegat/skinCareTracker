@@ -5,11 +5,12 @@ import { Provider as ReduxProvider } from 'react-redux';
 import App from './App';
 import MenuProvider from './context/MenuContext';
 import ListProvider from './context/ListContext';
-import { createStore, combineReducers, applyMiddleware, compose } from "redux";
-import thunk from "redux-thunk";
+//import { createStore, combineReducers, applyMiddleware, compose } from "redux";
+//import thunk from "redux-thunk";
 import { restoreCSRF, csrfFetch } from '../src/store/csrf';
 import configureStore from './store';
 import * as sessionActions from './store/session';
+
 
 const store = configureStore();
 

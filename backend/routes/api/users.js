@@ -2,13 +2,13 @@ const express = require('express');
 const asyncHandler = require('express-async-handler');
 const { check } = require('express-validator');
 const { handleValidationErrors } = require('../../utils/validation');
-const { bcrypt } = require('bcryptjs')
+const bcrypt = require('bcryptjs');
 const { setTokenCookie, requireAuth } = require('../../utils/auth');
 const { User, Task } = require('../../db/models');
 
 const router = express.Router();
 
-
+// Validation middleware for signup fields
 const validateSignup = [
   check('email')
     .exists({ checkFalsy: true })
@@ -29,26 +29,48 @@ const validateSignup = [
   handleValidationErrors,
 ];
 
-router.get('/test', asyncHandler(async(req, res, next) => {
+// Test route to verify server setup
+router.get('/test', asyncHandler(async (req, res) => {
   const users = await User.findAll();
   const tasks = await Task.findAll();
-  return res.json({ name: "test" });
-  
+  return res.json({ name: "test", users, tasks });
 }));
 
+// Route to handle user signup
 router.post(
-    '/',
-    validateSignup,
-    asyncHandler(async (req, res) => {
-      const { email, password, username} = req.body;
-      const user = await User.signup({ email, username, password });
-      await setTokenCookie(res, user);
-  
-      return res.json({
-        user,
-      });
-    }),
-  );
+  '/',
+  validateSignup,
+  asyncHandler(async (req, res, next) => {
+    const { email, password, username } = req.body;
 
+    // Check if the username already exists
+    const existingUser = await User.findOne({ where: { username } });
+    if (existingUser) {
+      const err = new Error("Username already exists");
+      err.status = 400;
+      err.errors = ["Username already exists"];
+      return next(err);
+    }
+
+    // Check if the email already exists
+    const existingEmail = await User.findOne({ where: { email } });
+    if (existingEmail) {
+      const err = new Error("Email already exists");
+      err.status = 400;
+      err.errors = ["Email already exists"];
+      return next(err);
+    }
+
+    // Hash the password and create the user
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = await User.create({ email, username, hashedPassword });
+
+    // Set the token cookie
+    await setTokenCookie(res, user);
+
+    // Return the new user info
+    return res.json({ user });
+  })
+);
 
 module.exports = router;
